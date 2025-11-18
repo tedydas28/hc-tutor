@@ -1,0 +1,9 @@
+# Ignore sensitive data and dependencies
+.env
+__pycache__/
+venv/
+*.pyc
+
+# LlamaIndex/Vector Store data
+data/
+storage/

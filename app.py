@@ -1,8 +1,9 @@
+from dotenv import load_dotenv
+load_dotenv()
 import os
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from dotenv import load_dotenv
 
 # Core LlamaIndex
 from llama_index.core import VectorStoreIndex, SimpleDirectoryReader, Settings, StorageContext
@@ -18,7 +19,6 @@ from pinecone import Pinecone
 from llama_index.vector_stores.pinecone import PineconeVectorStore
 
 # 1. Load Keys
-load_dotenv()
 GOOGLE_API_KEY = os.getenv("GEMINI_API_KEY")
 PINECONE_API_KEY = os.getenv("PINECONE_API_KEY")
 

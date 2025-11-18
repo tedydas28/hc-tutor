@@ -1,4 +1,11 @@
 fastapi
-uvicorn[standard]
-llama-index
-pypdf
+uvicorn
+python-dotenv
+llama-index-core
+
+# 👇 THESE ARE CRITICAL FOR GEMINI INTEGRATION
+llama-index-llms-gemini
+llama-index-embeddings-gemini
+
+llama-index-vector-stores-pinecone
+pinecone-client

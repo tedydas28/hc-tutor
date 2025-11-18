@@ -1,5 +1,4 @@
 from dotenv import load_dotenv
-load_dotenv()
 import os
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -17,7 +16,7 @@ from llama_index.embeddings.gemini import GeminiEmbedding
 # Cloud Database Integrations
 from pinecone import Pinecone
 from llama_index.vector_stores.pinecone import PineconeVectorStore
-
+load_dotenv()
 # 1. Load Keys
 GOOGLE_API_KEY = os.getenv("GEMINI_API_KEY")
 PINECONE_API_KEY = os.getenv("PINECONE_API_KEY")

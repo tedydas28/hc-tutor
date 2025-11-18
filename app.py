@@ -1,5 +1,6 @@
 from dotenv import load_dotenv
 import os
+from fastapi.responses import FileResponse
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -30,6 +31,8 @@ embed_model = GeminiEmbedding(model_name="models/text-embedding-004", api_key=GO
 
 Settings.llm = llm
 Settings.embed_model = embed_model
+
+
 
 # 3. Initialize Cloud Database Connection
 pc = Pinecone(api_key=PINECONE_API_KEY)
@@ -100,6 +103,22 @@ app.add_middleware(
 class GradingRequest(BaseModel):
     student_work: str
     hc_filename: str
+# Get the directory where app.py is located
+base_dir = os.path.dirname(os.path.abspath(__file__))
+# Construct the full path to index.html
+frontend_path = os.path.join(base_dir, "index.html")
+
+@app.get("/")
+async def read_root():
+    # Check if the file exists before attempting to serve it
+    if not os.path.exists(frontend_path):
+        # If Render still can't find it, return a clear JSON error
+        raise HTTPException(
+            status_code=404,
+            detail=f"Frontend file not found at path: {frontend_path}"
+        )
+    
+    return FileResponse(frontend_path)
 
 @app.get("/health")
 async def health():

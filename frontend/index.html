@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>HC Tutor</title>
+
+    <style>
+        body {
+            font-family: system-ui, sans-serif;
+            background: #f5f6fa;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        #header {
+            background: #2b2d42;
+            color: white;
+            padding: 1rem;
+            text-align: center;
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+        #chat-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1rem;
+        }
+
+        .msg {
+            max-width: 80%;
+            padding: 0.8rem;
+            margin: 0.5rem 0;
+            border-radius: 10px;
+            line-height: 1.4;
+        }
+
+        .user {
+            background: #d8eefe;
+            margin-left: auto;
+            border-bottom-right-radius: 2px;
+        }
+
+        .bot {
+            background: #ffffff;
+            border: 1px solid #ddd;
+            margin-right: auto;
+            border-bottom-left-radius: 2px;
+        }
+
+        #input-container {
+            display: flex;
+            flex-direction: column;
+            padding: 1rem;
+            background: #ffffff;
+            border-top: 1px solid #ddd;
+        }
+
+        /* Styling for Lesson Selector and Input */
+        #hc-select, #input {
+            width: 100%; /* Ensures they take the full width */
+            padding: 0.8rem;
+            font-size: 1rem;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            box-sizing: border-box; /* Include padding/border in the element's total width */
+            margin-bottom: 0.75rem;
+        }
+
+        #input {
+            resize: vertical; /* Only allow vertical resizing for the textarea */
+            min-height: 60px;
+        }
+
+        /* Container for the Send button and loading text */
+        #action-row {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end; /* Pushes button and loading indicator to the right */
+        }
+        
+        #send {
+            padding: 0 1.25rem;
+            border: none;
+            border-radius: 6px;
+            font-size: 1rem;
+            background: #2b2d42;
+            color: white;
+            cursor: pointer;
+            transition: 0.2s;
+            height: 40px;
+        }
+
+        #send:hover {
+            background: #1d1f33;
+        }
+        
+        #loading-indicator {
+            margin-right: 1rem; /* Space between text and button */
+            font-size: 0.9rem;
+            color: #555;
+            display: none;
+        }
+
+    </style>
+</head>
+
+<body>
+
+    <div id="header">HC Teaching Assistant</div>
+
+    <div id="chat-container"></div>
+
+    <div id="input-container">
+        <select id="hc-select">
+            <option value="" disabled selected>-- Select Lesson (HC) --</option>
+            <option value="HC_1_Project_Alpha">HC 1: Project Alpha</option>
+            <option value="HC_2_Risk_Mitigation">HC 2: Risk Mitigation</option>
+            </select>
+        
+        <textarea id="input" placeholder="Paste your assignment application here..."></textarea>
+        
+        <div id="action-row">
+            <span id="loading-indicator">Processing feedback...</span>
+            <button id="send">Grade Submission</button>
+        </div>
+    </div>
+
+    <script>
+        // --- Element References ---
+        const chatContainer = document.getElementById("chat-container");
+        const inputField = document.getElementById("input");
+        const sendButton = document.getElementById("send");
+        const hcSelect = document.getElementById("hc-select");
+        const loadingIndicator = document.getElementById("loading-indicator");
+
+        // --- Helper function to add messages to the chat view ---
+        function addMessage(text, sender) {
+            const msgDiv = document.createElement("div");
+            msgDiv.classList.add("msg", sender);
+            
+            // Convert \n to <br> for readability
+            msgDiv.innerHTML = text.replace(/\n/g, '<br>');
+            
+            chatContainer.appendChild(msgDiv);
+            // Scroll to the latest message
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        // --- Main Logic: Sends data to the /grade endpoint ---
+        async function gradeSubmission() {
+            const studentWork = inputField.value.trim();
+            const hcFilename = hcSelect.value;
+            
+            // 1. Validation
+            if (!hcFilename) {
+                addMessage("Please select a lesson (HC) file before submitting.", "bot");
+                return;
+            }
+            if (studentWork === "") {
+                addMessage("Please paste your assignment application into the box.", "bot");
+                return;
+            }
+
+            // 2. Display User Submission
+            addMessage(`[Lesson: ${hcFilename}]<br>${studentWork}`, "user");
+            inputField.value = ""; // Clear input
+            
+            // 3. Set UI to Loading State
+            sendButton.disabled = true;
+            loadingIndicator.style.display = 'inline';
+            
+            try {
+                // 4. Send the required JSON payload to the relative /grade path
+                const response = await fetch('/grade', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        student_work: studentWork,
+                        hc_filename: hcFilename 
+                    })
+                });
+
+                const data = await response.json();
+
+                // 5. Display Bot Feedback
+                if (response.ok) {
+                    addMessage(data.feedback, "bot");
+                } else {
+                    // Display error message from the backend
+                    const errorMessage = data.feedback || `Error ${response.status}: Failed to get feedback. Check server logs.`;
+                    addMessage(`[ERROR] ${errorMessage}`, "bot");
+                }
+
+            } catch (error) {
+                // 6. Handle network errors
+                addMessage(`[NETWORK ERROR] Could not connect to the grading server. Is the Python terminal running?`, "bot");
+            } finally {
+                // 7. Reset UI state
+                sendButton.disabled = false;
+                loadingIndicator.style.display = 'none';
+            }
+        }
+
+        // --- Event Listeners ---
+        sendButton.addEventListener('click', gradeSubmission);
+
+        // Allow Enter key to submit (Shift+Enter for newline)
+        inputField.addEventListener('keydown', function(event) {
+            if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault(); 
+                gradeSubmission();
+            }
+        });
+
+        // Add initial welcome message
+        addMessage("Welcome! Please select a lesson above and paste your assignment application to receive AI feedback.", "bot");
+    </script>
+
+</body>
+</html>

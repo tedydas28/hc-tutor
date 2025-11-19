@@ -223,7 +223,17 @@
         });
 
         // Add initial welcome message
-        addMessage("Welcome! Please type the required HC footnote/filename and paste your assignment application to receive AI feedback.", "bot");
+        const welcomeMessage = `
+        Welcome to the HC Footnote Feedback Bot! I can help you strengthen your HC footnote and ensure it aligns with Minerva’s requirements.
+
+        Please provide:
+        1. The HC Tag (e.g., #organization, #evidencebased, #designthinking)
+        2. Your Footnote Text
+        3. Assignment Context (optional but helpful)
+
+        Once I have these, I will offer targeted, HC-aligned feedback based on the HC Handbook.
+        `;
+        addMessage(welcomeMessage, "bot");
     </script>
 
 </body>

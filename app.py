@@ -1,9 +1,7 @@
 from dotenv import load_dotenv
 import os
-# --- NEW IMPORTS FOR STATIC FILE SERVING ---
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
-# -------------------------------------------
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -40,7 +38,6 @@ Settings.embed_model = embed_model
 # 3. Initialize Cloud Database Connection
 try:
     pc = Pinecone(api_key=PINECONE_API_KEY)
-    # Connect to the index you created named "hc-tutor"
     pinecone_index = pc.Index("hc-tutor")
     vector_store = PineconeVectorStore(pinecone_index=pinecone_index)
 except Exception as e:
@@ -54,7 +51,6 @@ def get_index():
     if vector_store is None:
          raise Exception("Vector store connection failed.")
          
-    # Check if the database already has data
     stats = pinecone_index.describe_index_stats()
     total_vectors = stats.get('total_vector_count', 0)
 
@@ -65,7 +61,6 @@ def get_index():
     else:
         print("☁️ Pinecone is empty. Uploading PDFs to the Cloud (One time only)...")
         
-        # Locate PDFs
         base_dir = os.path.dirname(os.path.abspath(__file__))
         pdf_dir = os.path.join(base_dir, "data", "pdfs")
         
@@ -76,10 +71,8 @@ def get_index():
         parser = SimpleNodeParser.from_defaults(chunk_size=1024, chunk_overlap=50)
         nodes = parser.get_nodes_from_documents(docs)
         
-        # Create Storage Context pointing to Pinecone
         storage_context = StorageContext.from_defaults(vector_store=vector_store)
         
-        # Build and Push to Cloud
         index = VectorStoreIndex(nodes, storage_context=storage_context)
         print("✅ Upload complete! Data is now online.")
         return index
@@ -116,26 +109,9 @@ class GradingRequest(BaseModel):
     student_work: str
     hc_filename: str
 
-# --- START OF FILE SERVING FIX ---
-
-# 1. Mount Static Files to the root directory
-# This tells FastAPI to treat the entire root folder as a static file server.
-# html=True ensures that when a request hits the root path "/", it serves index.html.
-app.mount("/", StaticFiles(directory=".", html=True), name="static")
-
-# 2. The explicit fallback route for single-page applications (ensures root always works)
-# This replaces the previous @app.get("/") using FileResponse
-@app.get("/", response_class=HTMLResponse)
-async def read_index():
-    try:
-        # Read index.html directly from the root path
-        with open("index.html", "r") as f:
-            return f.read()
-    except FileNotFoundError:
-        # If the file is still not found, throw an error
-        raise HTTPException(status_code=404, detail="Frontend file index.html not found in the deployment.")
-
-# --- END OF FILE SERVING FIX ---
+# ----------------------------------------------------
+# --- API ROUTES (Define specific routes FIRST) ---
+# ----------------------------------------------------
 
 @app.get("/health")
 async def health():
@@ -144,7 +120,6 @@ async def health():
 @app.post("/grade")
 async def grade_assignment(request: GradingRequest):
     try:
-        # Clean filename
         target_filename = request.hc_filename.strip()
         if not target_filename.lower().endswith(".pdf"):
             target_filename += ".pdf"
@@ -195,3 +170,11 @@ async def grade_assignment(request: GradingRequest):
     except Exception as e:
         print(f"ERROR: {e}")
         return {"feedback": f"System Error: {str(e)}"}
+
+# ----------------------------------------------------------------------
+# --- STATIC FILE ROUTE (Mount general routes LAST) ---
+# ----------------------------------------------------------------------
+
+# Mount Static Files to the root directory
+# This handles the index.html and any other static assets.
+app.mount("/", StaticFiles(directory=".", html=True), name="static")

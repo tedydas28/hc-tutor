@@ -60,27 +60,34 @@
             border-top: 1px solid #ddd;
         }
 
-        /* Styling for Lesson Selector and Input */
-        #hc-select, #input {
-            width: 100%; /* Ensures they take the full width */
+        /* New style for the single-line footnote input */
+        #hc-footnote-input {
+            width: 100%; 
             padding: 0.8rem;
             font-size: 1rem;
             border: 1px solid #ccc;
             border-radius: 6px;
-            box-sizing: border-box; /* Include padding/border in the element's total width */
+            box-sizing: border-box; 
             margin-bottom: 0.75rem;
         }
 
         #input {
-            resize: vertical; /* Only allow vertical resizing for the textarea */
+            width: 100%; 
+            padding: 0.8rem;
+            font-size: 1rem;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            box-sizing: border-box;
+            resize: vertical; 
             min-height: 60px;
+            margin-bottom: 0.75rem;
         }
 
         /* Container for the Send button and loading text */
         #action-row {
             display: flex;
             align-items: center;
-            justify-content: flex-end; /* Pushes button and loading indicator to the right */
+            justify-content: flex-end; 
         }
         
         #send {
@@ -100,7 +107,7 @@
         }
         
         #loading-indicator {
-            margin-right: 1rem; /* Space between text and button */
+            margin-right: 1rem;
             font-size: 0.9rem;
             color: #555;
             display: none;
@@ -116,18 +123,21 @@
     <div id="chat-container"></div>
 
     <div id="input-container">
-        <select id="hc-select">
-            <option value="" disabled selected>-- Select Lesson (HC) --</option>
-            <option value="HC_1_Project_Alpha">HC 1: Project Alpha</option>
-            <option value="HC_2_Risk_Mitigation">HC 2: Risk Mitigation</option>
-            </select>
+        <input 
+            type="text" 
+            id="hc-footnote-input" 
+            placeholder="Please type out your HC footnote here." 
+            required 
+        />
         
-        <textarea id="input" placeholder="Paste your assignment application here..."></textarea>
+        <textarea 
+            id="input" 
+            placeholder="Paste your assignment application here..."
+        ></textarea>
         
         <div id="action-row">
             <span id="loading-indicator">Processing feedback...</span>
-            <button id="send">Grade Submission</button>
-        </div>
+            <button id="send">Run</button> </div>
     </div>
 
     <script>
@@ -135,7 +145,8 @@
         const chatContainer = document.getElementById("chat-container");
         const inputField = document.getElementById("input");
         const sendButton = document.getElementById("send");
-        const hcSelect = document.getElementById("hc-select");
+        // New reference for the text input
+        const hcFootnoteInput = document.getElementById("hc-footnote-input"); 
         const loadingIndicator = document.getElementById("loading-indicator");
 
         // --- Helper function to add messages to the chat view ---
@@ -154,11 +165,12 @@
         // --- Main Logic: Sends data to the /grade endpoint ---
         async function gradeSubmission() {
             const studentWork = inputField.value.trim();
-            const hcFilename = hcSelect.value;
+            // Read value from the new text input
+            const hcFilename = hcFootnoteInput.value.trim(); 
             
             // 1. Validation
-            if (!hcFilename) {
-                addMessage("Please select a lesson (HC) file before submitting.", "bot");
+            if (hcFilename === "") {
+                addMessage("Please provide the HC footnote/filename to search against.", "bot");
                 return;
             }
             if (studentWork === "") {
@@ -167,8 +179,10 @@
             }
 
             // 2. Display User Submission
-            addMessage(`[Lesson: ${hcFilename}]<br>${studentWork}`, "user");
-            inputField.value = ""; // Clear input
+            addMessage(`[HC File: ${hcFilename}]<br>${studentWork}`, "user");
+            inputField.value = ""; // Clear assignment input
+            // hcFootnoteInput.value = ""; // Keep the footnote input for quick reuse
+
             
             // 3. Set UI to Loading State
             sendButton.disabled = true;
@@ -183,7 +197,7 @@
                     },
                     body: JSON.stringify({
                         student_work: studentWork,
-                        hc_filename: hcFilename 
+                        hc_filename: hcFilename // Value comes from the text input
                     })
                 });
 
@@ -194,7 +208,7 @@
                     addMessage(data.feedback, "bot");
                 } else {
                     // Display error message from the backend
-                    const errorMessage = data.feedback || `Error ${response.status}: Failed to get feedback. Check server logs.`;
+                    const errorMessage = data.detail || `Error ${response.status}: Failed to get feedback. Check server logs.`;
                     addMessage(`[ERROR] ${errorMessage}`, "bot");
                 }
 
@@ -220,7 +234,7 @@
         });
 
         // Add initial welcome message
-        addMessage("Welcome! Please select a lesson above and paste your assignment application to receive AI feedback.", "bot");
+        addMessage("Welcome! Please type the required HC footnote/filename and paste your assignment application to receive AI feedback.", "bot");
     </script>
 
 </body>

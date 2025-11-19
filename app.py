@@ -1,6 +1,9 @@
 from dotenv import load_dotenv
 import os
-from fastapi.responses import FileResponse
+# --- NEW IMPORTS FOR STATIC FILE SERVING ---
+from fastapi.responses import HTMLResponse
+from fastapi.staticfiles import StaticFiles
+# -------------------------------------------
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -17,8 +20,9 @@ from llama_index.embeddings.gemini import GeminiEmbedding
 # Cloud Database Integrations
 from pinecone import Pinecone
 from llama_index.vector_stores.pinecone import PineconeVectorStore
+
+# 1. Load Keys (MUST BE FIRST ACTIONABLE CODE)
 load_dotenv()
-# 1. Load Keys
 GOOGLE_API_KEY = os.getenv("GEMINI_API_KEY")
 PINECONE_API_KEY = os.getenv("PINECONE_API_KEY")
 
@@ -33,15 +37,23 @@ Settings.llm = llm
 Settings.embed_model = embed_model
 
 
-
 # 3. Initialize Cloud Database Connection
-pc = Pinecone(api_key=PINECONE_API_KEY)
-# Connect to the index you created named "hc-tutor"
-pinecone_index = pc.Index("hc-tutor")
-vector_store = PineconeVectorStore(pinecone_index=pinecone_index)
+try:
+    pc = Pinecone(api_key=PINECONE_API_KEY)
+    # Connect to the index you created named "hc-tutor"
+    pinecone_index = pc.Index("hc-tutor")
+    vector_store = PineconeVectorStore(pinecone_index=pinecone_index)
+except Exception as e:
+    print(f"Pinecone Connection Error: {e}")
+    pinecone_index = None
+    vector_store = None
+
 
 # 4. The "Cloud" Index Loader
 def get_index():
+    if vector_store is None:
+         raise Exception("Vector store connection failed.")
+         
     # Check if the database already has data
     stats = pinecone_index.describe_index_stats()
     total_vectors = stats.get('total_vector_count', 0)
@@ -58,7 +70,7 @@ def get_index():
         pdf_dir = os.path.join(base_dir, "data", "pdfs")
         
         if not os.path.exists(pdf_dir):
-             raise FileNotFoundError("Could not find data/pdfs folder to upload.")
+            raise FileNotFoundError("Could not find data/pdfs folder to upload.")
 
         docs = SimpleDirectoryReader(pdf_dir).load_data()
         parser = SimpleNodeParser.from_defaults(chunk_size=1024, chunk_overlap=50)
@@ -103,22 +115,27 @@ app.add_middleware(
 class GradingRequest(BaseModel):
     student_work: str
     hc_filename: str
-# Get the directory where app.py is located
-base_dir = os.path.dirname(os.path.abspath(__file__))
-# Construct the full path to index.html
-frontend_path = os.path.join(base_dir, "index.html")
 
-@app.get("/")
-async def read_root():
-    # Check if the file exists before attempting to serve it
-    if not os.path.exists(frontend_path):
-        # If Render still can't find it, return a clear JSON error
-        raise HTTPException(
-            status_code=404,
-            detail=f"Frontend file not found at path: {frontend_path}"
-        )
-    
-    return FileResponse(frontend_path)
+# --- START OF FILE SERVING FIX ---
+
+# 1. Mount Static Files to the root directory
+# This tells FastAPI to treat the entire root folder as a static file server.
+# html=True ensures that when a request hits the root path "/", it serves index.html.
+app.mount("/", StaticFiles(directory=".", html=True), name="static")
+
+# 2. The explicit fallback route for single-page applications (ensures root always works)
+# This replaces the previous @app.get("/") using FileResponse
+@app.get("/", response_class=HTMLResponse)
+async def read_index():
+    try:
+        # Read index.html directly from the root path
+        with open("index.html", "r") as f:
+            return f.read()
+    except FileNotFoundError:
+        # If the file is still not found, throw an error
+        raise HTTPException(status_code=404, detail="Frontend file index.html not found in the deployment.")
+
+# --- END OF FILE SERVING FIX ---
 
 @app.get("/health")
 async def health():
@@ -150,7 +167,7 @@ async def grade_assignment(request: GradingRequest):
         retrieval_response = query_engine.retrieve(request.student_work)
         
         if not retrieval_response:
-             return {"feedback": f"⚠️ Error: No content found for '{target_filename}'. Check filename spelling."}
+            return {"feedback": f"⚠️ Error: No content found for '{target_filename}'. Check filename spelling."}
 
         context_text = "\n\n".join([node.node.get_content() for node in retrieval_response])
 

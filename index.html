@@ -60,8 +60,8 @@
             border-top: 1px solid #ddd;
         }
 
-        /* New style for the single-line footnote input */
-        #hc-footnote-input {
+        /* Styling for Input Fields */
+        #hc-footnote-input, #input {
             width: 100%; 
             padding: 0.8rem;
             font-size: 1rem;
@@ -72,15 +72,8 @@
         }
 
         #input {
-            width: 100%; 
-            padding: 0.8rem;
-            font-size: 1rem;
-            border: 1px solid #ccc;
-            border-radius: 6px;
-            box-sizing: border-box;
             resize: vertical; 
             min-height: 60px;
-            margin-bottom: 0.75rem;
         }
 
         /* Container for the Send button and loading text */
@@ -107,7 +100,7 @@
         }
         
         #loading-indicator {
-            margin-right: 1rem;
+            margin-right: 1rem; 
             font-size: 0.9rem;
             color: #555;
             display: none;
@@ -126,18 +119,19 @@
         <input 
             type="text" 
             id="hc-footnote-input" 
-            placeholder="Please type out your HC footnote here." 
+            placeholder="which HC are you footnoting?" 
             required 
         />
         
         <textarea 
             id="input" 
-            placeholder="Paste your assignment application here..."
+            placeholder="Type out your HC footnote here."
         ></textarea>
         
         <div id="action-row">
             <span id="loading-indicator">Processing feedback...</span>
-            <button id="send">Run</button> </div>
+            <button id="send">Run</button>
+        </div>
     </div>
 
     <script>
@@ -145,7 +139,6 @@
         const chatContainer = document.getElementById("chat-container");
         const inputField = document.getElementById("input");
         const sendButton = document.getElementById("send");
-        // New reference for the text input
         const hcFootnoteInput = document.getElementById("hc-footnote-input"); 
         const loadingIndicator = document.getElementById("loading-indicator");
 
@@ -158,14 +151,12 @@
             msgDiv.innerHTML = text.replace(/\n/g, '<br>');
             
             chatContainer.appendChild(msgDiv);
-            // Scroll to the latest message
             chatContainer.scrollTop = chatContainer.scrollHeight;
         }
 
         // --- Main Logic: Sends data to the /grade endpoint ---
         async function gradeSubmission() {
             const studentWork = inputField.value.trim();
-            // Read value from the new text input
             const hcFilename = hcFootnoteInput.value.trim(); 
             
             // 1. Validation
@@ -181,8 +172,6 @@
             // 2. Display User Submission
             addMessage(`[HC File: ${hcFilename}]<br>${studentWork}`, "user");
             inputField.value = ""; // Clear assignment input
-            // hcFootnoteInput.value = ""; // Keep the footnote input for quick reuse
-
             
             // 3. Set UI to Loading State
             sendButton.disabled = true;
@@ -197,7 +186,7 @@
                     },
                     body: JSON.stringify({
                         student_work: studentWork,
-                        hc_filename: hcFilename // Value comes from the text input
+                        hc_filename: hcFilename 
                     })
                 });
 
@@ -214,7 +203,7 @@
 
             } catch (error) {
                 // 6. Handle network errors
-                addMessage(`[NETWORK ERROR] Could not connect to the grading server. Is the Python terminal running?`, "bot");
+                addMessage(`[NETWORK ERROR] Could not connect to the grading server.`, "bot");
             } finally {
                 // 7. Reset UI state
                 sendButton.disabled = false;

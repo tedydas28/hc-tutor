@@ -98,6 +98,23 @@
         #send:hover {
             background: #1d1f33;
         }
+
+        #download {
+            padding: 0 1.25rem;
+            border: 1px solid #2b2d42;
+            border-radius: 6px;
+            font-size: 1rem;
+            background: #ffffff;
+            color: #2b2d42;
+            cursor: pointer;
+            transition: 0.2s;
+            height: 40px;
+            margin-right: 0.5rem;
+        }
+
+        #download:hover {
+            background: #f0f0f5;
+        }
         
         #loading-indicator {
             margin-right: 1rem; 
@@ -130,6 +147,7 @@
         
         <div id="action-row">
             <span id="loading-indicator">Processing feedback...</span>
+            <button id="download" title="Download conversation">⬇ Download</button>
             <button id="send">Run</button>
         </div>
     </div>
@@ -139,6 +157,7 @@
         const chatContainer = document.getElementById("chat-container");
         const inputField = document.getElementById("input");
         const sendButton = document.getElementById("send");
+        const downloadButton = document.getElementById("download");
         const hcFootnoteInput = document.getElementById("hc-footnote-input"); 
         const loadingIndicator = document.getElementById("loading-indicator");
 
@@ -211,8 +230,36 @@
             }
         }
 
+        // --- Download conversation as a .txt file ---
+        function downloadConversation() {
+            const messages = chatContainer.querySelectorAll(".msg");
+            if (messages.length === 0) {
+                alert("No conversation history to download.");
+                return;
+            }
+            const lines = [];
+            messages.forEach(function(msg) {
+                const role = msg.classList.contains("user") ? "You" : "HC Tutor";
+                // Clone the node and replace <br> elements with newline text nodes
+                // so textContent gives us proper line breaks without risking XSS
+                const clone = msg.cloneNode(true);
+                clone.querySelectorAll("br").forEach(function(br) {
+                    br.replaceWith("\n");
+                });
+                lines.push(role + ":\n" + clone.textContent + "\n");
+            });
+            const blob = new Blob([lines.join("\n---\n\n")], { type: "text/plain" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = "hc-tutor-feedback.txt";
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
         // --- Event Listeners ---
         sendButton.addEventListener('click', gradeSubmission);
+        downloadButton.addEventListener('click', downloadConversation);
 
         // Allow Enter key to submit (Shift+Enter for newline)
         inputField.addEventListener('keydown', function(event) {

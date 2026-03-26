@@ -52,6 +52,8 @@ cd hc-tutor
 pip install -r requirements.txt
 ```
 
+Replace `YOUR_USERNAME` with your actual GitHub username before publishing.
+
 Create a `.env` file with your API keys:
 ```
 GEMINI_API_KEY=your_gemini_key_here
@@ -63,8 +65,16 @@ the server it uploads them to Pinecone. After that it just connects to
 what's already there — no re-upload needed.
 
 ```bash
-uvicorn main:app --reload
+uvicorn app:app --reload
 ```
+
+If this is your first run, make sure the folder exists before starting:
+
+```bash
+mkdir data\\pdfs
+```
+
+On macOS/Linux, use `mkdir -p data/pdfs`.
 
 The chat UI opens at `http://127.0.0.1:8000`.
 
@@ -86,8 +96,8 @@ different HC better, it'll tell you that too.
 ## Files
 
 ```
-main.py          — RAG pipeline, Pinecone connection, /grade endpoint
-app.py           — lightweight Gemini chat endpoint
+app.py           — RAG pipeline, Pinecone connection, /grade endpoint
+main.py          — lightweight Gemini chat endpoint (/chat)
 gem_prompt.txt   — the TA persona, rubric, and output format
 index.html       — frontend chat interface
 data/pdfs/       — HC Handbook PDFs (not tracked in git)

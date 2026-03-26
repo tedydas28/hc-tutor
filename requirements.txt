@@ -1,9 +1,10 @@
 fastapi
 uvicorn
 python-dotenv
+google-generativeai
 llama-index-core
 
-# 👇 THESE ARE CRITICAL FOR GEMINI INTEGRATION
+## THESE ARE CRITICAL FOR GEMINI INTEGRATION
 llama-index-llms-gemini
 llama-index-embeddings-gemini
 

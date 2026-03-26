@@ -5,5 +5,7 @@ venv/
 *.pyc
 
 # LlamaIndex/Vector Store data
-data/
 storage/
+
+# Keep folder scaffold, ignore uploaded handbook files
+data/pdfs/*.pdf

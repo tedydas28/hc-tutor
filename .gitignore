@@ -9,3 +9,6 @@ storage/
 
 # Keep folder scaffold, ignore uploaded handbook files
 data/pdfs/*.pdf
+data/pdfs/
+.env
+gem_prompt.txt

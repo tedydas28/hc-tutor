@@ -1,240 +1,435 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>HC Tutor</title>
+    <title>Minerva HC Tutor</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Outfit:wght@500;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <style>
+        :root {
+            --primary: #6366f1;
+            --primary-hover: #4f46e5;
+            --text-main: #0f172a;
+            --text-light: #64748b;
+            --bot-bubble: #ffffff;
+            --bg-color: #f8fafc;
+        }
+
         body {
-            font-family: system-ui, sans-serif;
-            background: #f5f6fa;
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            background-image: radial-gradient(at 40% 20%, hsla(250, 100%, 74%, 0.15) 0px, transparent 50%),
+                radial-gradient(at 80% 0%, hsla(189, 100%, 56%, 0.15) 0px, transparent 50%),
+                radial-gradient(at 0% 50%, hsla(340, 100%, 76%, 0.15) 0px, transparent 50%);
             margin: 0;
             padding: 0;
             display: flex;
-            flex-direction: column;
+            justify-content: center;
+            align-items: center;
             height: 100vh;
+            color: var(--text-main);
+        }
+
+        #app-container {
+            width: 100%;
+            max-width: 900px;
+            height: 90vh;
+            background: rgba(255, 255, 255, 0.6);
+            backdrop-filter: blur(20px);
+            border-radius: 24px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.8);
         }
 
         #header {
-            background: #2b2d42;
-            color: white;
-            padding: 1rem;
+            background: rgba(255, 255, 255, 0.5);
+            backdrop-filter: blur(10px);
+            color: var(--text-main);
+            padding: 1.5rem;
             text-align: center;
             font-size: 1.5rem;
-            font-weight: 600;
+            font-weight: 700;
+            font-family: 'Outfit', sans-serif;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.5);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02);
+        }
+
+        #header i {
+            color: var(--primary);
         }
 
         #chat-container {
             flex: 1;
             overflow-y: auto;
-            padding: 1rem;
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            scroll-behavior: smooth;
+        }
+
+        #chat-container::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        #chat-container::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        #chat-container::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+
+        .msg-wrapper {
+            display: flex;
+            flex-direction: column;
+            max-width: 75%;
+            animation: fadeIn 0.3s ease-out forwards;
+            opacity: 0;
+            transform: translateY(10px);
+        }
+
+        @keyframes fadeIn {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .msg-wrapper.user {
+            align-self: flex-end;
+            align-items: flex-end;
+        }
+
+        .msg-wrapper.bot {
+            align-self: flex-start;
+            align-items: flex-start;
         }
 
         .msg {
-            max-width: 80%;
-            padding: 0.8rem;
-            margin: 0.5rem 0;
-            border-radius: 10px;
-            line-height: 1.4;
+            padding: 1rem 1.25rem;
+            border-radius: 18px;
+            line-height: 1.6;
+            font-size: 0.95rem;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.02);
         }
 
-        .user {
-            background: #d8eefe;
-            margin-left: auto;
-            border-bottom-right-radius: 2px;
+        .user .msg {
+            background: linear-gradient(135deg, var(--primary), #8b5cf6);
+            color: white;
+            border-bottom-right-radius: 4px;
+            box-shadow: 0 4px 15px rgba(99, 102, 241, 0.2);
         }
 
-        .bot {
-            background: #ffffff;
-            border: 1px solid #ddd;
-            margin-right: auto;
-            border-bottom-left-radius: 2px;
+        .bot .msg {
+            background: var(--bot-bubble);
+            color: var(--text-main);
+            border-bottom-left-radius: 4px;
+            border: 1px solid rgba(226, 232, 240, 0.8);
+        }
+
+        .bot .msg strong {
+            color: var(--primary);
+        }
+
+        .sender-name {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-light);
+            margin-bottom: 0.4rem;
+            font-weight: 600;
+            padding: 0 0.5rem;
         }
 
         #input-container {
+            padding: 1.5rem;
+            background: white;
+            border-top: 1px solid #e2e8f0;
             display: flex;
             flex-direction: column;
-            padding: 1rem;
-            background: #ffffff;
-            border-top: 1px solid #ddd;
+            gap: 1rem;
         }
 
-        /* Styling for Input Fields */
-        #hc-footnote-input, #input {
-            width: 100%; 
-            padding: 0.8rem;
+        .input-group {
+            position: relative;
+        }
+
+        .input-icon {
+            position: absolute;
+            left: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-light);
+        }
+
+        #hc-footnote-input {
+            width: 100%;
+            padding: 0.8rem 1rem 0.8rem 2.5rem;
             font-size: 1rem;
-            border: 1px solid #ccc;
-            border-radius: 6px;
-            box-sizing: border-box; 
-            margin-bottom: 0.75rem;
+            font-family: 'Inter', sans-serif;
+            border: 2px solid transparent;
+            border-radius: 16px;
+            transition: all 0.3s ease;
+            background: rgba(241, 245, 249, 0.8);
+            color: black;
+            box-sizing: border-box;
+        }
+
+        #hc-footnote-input:focus,
+        #input:focus {
+            outline: none;
+            border-color: var(--primary);
+            background: white;
+            color: black !important;
+            box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.15);
         }
 
         #input {
-            resize: vertical; 
-            min-height: 60px;
+            width: 100%;
+            padding: 1rem;
+            font-size: 1rem;
+            font-family: 'Inter', sans-serif;
+            border: 2px solid transparent;
+            border-radius: 16px;
+            resize: none;
+            min-height: 80px;
+            transition: all 0.3s ease;
+            background: rgba(241, 245, 249, 0.8);
+            color: black;
+            box-sizing: border-box;
         }
 
-        /* Container for the Send button and loading text */
         #action-row {
             display: flex;
             align-items: center;
-            justify-content: flex-end; 
+            justify-content: space-between;
         }
-        
+
+        #loading-indicator {
+            font-size: 0.9rem;
+            color: var(--primary);
+            font-weight: 600;
+            display: none;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .spinner {
+            width: 16px;
+            height: 16px;
+            border: 2px solid var(--primary);
+            border-top-color: transparent;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
         #send {
-            padding: 0 1.25rem;
+            padding: 0 2rem;
             border: none;
-            border-radius: 6px;
+            border-radius: 16px;
             font-size: 1rem;
-            background: #2b2d42;
+            font-weight: 600;
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, var(--primary), #8b5cf6);
             color: white;
             cursor: pointer;
-            transition: 0.2s;
-            height: 40px;
+            transition: all 0.2s ease;
+            height: 48px;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
         }
 
         #send:hover {
-            background: #1d1f33;
-        }
-        
-        #loading-indicator {
-            margin-right: 1rem; 
-            font-size: 0.9rem;
-            color: #555;
-            display: none;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(99, 102, 241, 0.4);
         }
 
+        #send:active {
+            transform: translateY(0);
+        }
+
+        #send:disabled {
+            background: #cbd5e1;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        @media (max-width: 768px) {
+            #app-container {
+                height: 100vh;
+                border-radius: 0;
+                max-width: 100%;
+            }
+
+            .msg-wrapper {
+                max-width: 85%;
+            }
+
+            #chat-container {
+                padding: 1rem;
+            }
+
+            #input-container {
+                padding: 1rem;
+            }
+        }
     </style>
 </head>
 
 <body>
+    <div id="app-container">
+        <div id="header">
+            <i class="fa-solid fa-graduation-cap"></i>
+            HC Teaching Assistant
+        </div>
 
-    <div id="header">HC Teaching Assistant</div>
+        <div id="chat-container"></div>
 
-    <div id="chat-container"></div>
+        <div id="input-container">
+            <div class="input-group">
+                <i class="fa-solid fa-hashtag input-icon"></i>
+                <input type="text" id="hc-footnote-input"
+                    placeholder="Which HC are you footnoting? (e.g., organization)" />
+            </div>
 
-    <div id="input-container">
-        <input 
-            type="text" 
-            id="hc-footnote-input" 
-            placeholder="which HC are you footnoting?" 
-            required 
-        />
-        
-        <textarea 
-            id="input" 
-            placeholder="Type out your HC footnote here."
-        ></textarea>
-        
-        <div id="action-row">
-            <span id="loading-indicator">Processing feedback...</span>
-            <button id="send">Run</button>
+            <textarea id="input" placeholder="Paste your assignment text and footnote here..."></textarea>
+
+            <div id="action-row">
+                <div id="loading-indicator">
+                    <div class="spinner"></div> Processing feedback...
+                </div>
+                <div style="flex-grow: 1;"></div>
+                <button id="send">
+                    <span>Analyze</span>
+                    <i class="fa-solid fa-paper-plane"></i>
+                </button>
+            </div>
         </div>
     </div>
 
     <script>
-        // --- Element References ---
         const chatContainer = document.getElementById("chat-container");
         const inputField = document.getElementById("input");
         const sendButton = document.getElementById("send");
-        const hcFootnoteInput = document.getElementById("hc-footnote-input"); 
+        const hcFootnoteInput = document.getElementById("hc-footnote-input");
         const loadingIndicator = document.getElementById("loading-indicator");
 
-        // --- Helper function to add messages to the chat view ---
         function addMessage(text, sender) {
+            const wrapperDiv = document.createElement("div");
+            wrapperDiv.classList.add("msg-wrapper", sender);
+
+            const nameDiv = document.createElement("div");
+            nameDiv.classList.add("sender-name");
+            nameDiv.innerText = sender === "user" ? "You" : "HC Tutor";
+
             const msgDiv = document.createElement("div");
-            msgDiv.classList.add("msg", sender);
-            
-            // Convert \n to <br> for readability
-            msgDiv.innerHTML = text.replace(/\n/g, '<br>');
-            
-            chatContainer.appendChild(msgDiv);
-            chatContainer.scrollTop = chatContainer.scrollHeight;
+            msgDiv.classList.add("msg");
+
+            let formattedText = text.replace(/\n/g, '<br>');
+            formattedText = formattedText.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+            msgDiv.innerHTML = formattedText;
+
+            wrapperDiv.appendChild(nameDiv);
+            wrapperDiv.appendChild(msgDiv);
+            chatContainer.appendChild(wrapperDiv);
+
+            setTimeout(() => {
+                chatContainer.scrollTo({ top: chatContainer.scrollHeight, behavior: 'smooth' });
+            }, 50);
         }
 
-        // --- Main Logic: Sends data to the /grade endpoint ---
         async function gradeSubmission() {
             const studentWork = inputField.value.trim();
-            const hcFilename = hcFootnoteInput.value.trim(); 
-            
-            // 1. Validation
+            const hcFilename = hcFootnoteInput.value.trim();
+
             if (hcFilename === "") {
-                addMessage("Please provide the HC footnote/filename to search against.", "bot");
+                addMessage("Please enter an HC tag before submitting.", "bot");
+                hcFootnoteInput.focus();
                 return;
             }
             if (studentWork === "") {
-                addMessage("Please paste your assignment application into the box.", "bot");
+                addMessage("Please paste your footnote text before submitting.", "bot");
+                inputField.focus();
                 return;
             }
 
-            // 2. Display User Submission
-            addMessage(`[HC File: ${hcFilename}]<br>${studentWork}`, "user");
-            inputField.value = ""; // Clear assignment input
-            
-            // 3. Set UI to Loading State
+            addMessage(`<strong>HC Target:</strong> #${hcFilename}<br><br>${studentWork}`, "user");
+            inputField.value = "";
+
             sendButton.disabled = true;
-            loadingIndicator.style.display = 'inline';
-            
+            loadingIndicator.style.display = 'flex';
+
             try {
-                // 4. Send the required JSON payload to the relative /grade path
                 const response = await fetch('/grade', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         student_work: studentWork,
-                        hc_filename: hcFilename 
+                        hc_filename: hcFilename
                     })
                 });
 
                 const data = await response.json();
 
-                // 5. Display Bot Feedback
                 if (response.ok) {
                     addMessage(data.feedback, "bot");
                 } else {
-                    // Display error message from the backend
-                    const errorMessage = data.detail || `Error ${response.status}: Failed to get feedback. Check server logs.`;
+                    const errorMessage = data.detail || `Error ${response.status}: Failed to get feedback.`;
                     addMessage(`[ERROR] ${errorMessage}`, "bot");
                 }
 
             } catch (error) {
-                // 6. Handle network errors
-                addMessage(`[NETWORK ERROR] Could not connect to the grading server.`, "bot");
+                addMessage(`[NETWORK ERROR] Could not connect to the server. Is the backend running?`, "bot");
             } finally {
-                // 7. Reset UI state
                 sendButton.disabled = false;
                 loadingIndicator.style.display = 'none';
             }
         }
 
-        // --- Event Listeners ---
         sendButton.addEventListener('click', gradeSubmission);
 
-        // Allow Enter key to submit (Shift+Enter for newline)
-        inputField.addEventListener('keydown', function(event) {
+        inputField.addEventListener('keydown', function (event) {
             if (event.key === 'Enter' && !event.shiftKey) {
-                event.preventDefault(); 
+                event.preventDefault();
                 gradeSubmission();
             }
         });
 
-        // Add initial welcome message
-        const welcomeMessage = `
-        Welcome to the HC Footnote Feedback Bot! I can help you strengthen your HC footnote and ensure it aligns with Minerva’s requirements.
-
-        Please provide:
-        1. The HC Tag (e.g., #organization, #evidencebased, #designthinking)
-        2. Your Footnote Text
-        3. Assignment Context (optional but helpful)
-
-        Once I have these, I will offer targeted, HC-aligned feedback based on the HC Handbook.
-        `;
-        addMessage(welcomeMessage, "bot");
+        setTimeout(() => {
+            addMessage(
+                `👋 <strong>Welcome to the HC Footnote Feedback Bot!</strong><br><br>
+                I'm here to help you strengthen your HC application and ensure it aligns with Minerva's requirements.<br><br>
+                <strong>Here's how to use me:</strong><br>
+                1. Enter the HC tag (e.g., <em>#organization</em>)<br>
+                2. Paste your footnote text and assignment context<br>
+                3. Hit <strong>Analyze</strong> — feedback comes back in a few seconds.<br><br>
+                Let's get started! ✨`,
+                "bot"
+            );
+        }, 300);
     </script>
-
 </body>
+
 </html>

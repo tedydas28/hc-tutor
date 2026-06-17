@@ -18,6 +18,7 @@ It gives you back:
 - **Strengths**: what you actually got right in applying the HC
 - **Suggestions for Improvement**, specific and diagnostic, with guided reflection questions pulled from the Handbook
 - **HC Fit Check**, if your footnote is actually describing a different HC, it'll tell you
+- **Similarity scores**, a cosine similarity score (0–1) between your submission and each retrieved reference chunk, used internally to calibrate how deep the feedback goes
 
 It won't rewrite your footnote, or give you a template of exactly what to do. That would defeat the purpose.
 
@@ -28,6 +29,7 @@ It won't rewrite your footnote, or give you a template of exactly what to do. Th
 - **Backend:** FastAPI + LlamaIndex
 - **LLM:** Gemini 2.5 Flash
 - **Embeddings:** `BAAI/bge-small-en-v1.5` (local, free, no API cost)
+- **Similarity scoring:** PyTorch + `sentence-transformers` — cosine similarity between the student submission and retrieved rubric chunks, computed via `torch.nn.functional` before generation
 - **Vector DB:** Pinecone (free tier)
 - **Frontend:** plain HTML/CSS/JS + optional Streamlit UI
 

@@ -1,8 +1,11 @@
 from dotenv import load_dotenv
 import os
+import torch
+import torch.nn.functional as F
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+from sentence_transformers import SentenceTransformer
 
 # Core LlamaIndex
 from llama_index.core import VectorStoreIndex, SimpleDirectoryReader, Settings, StorageContext
@@ -12,7 +15,7 @@ from llama_index.core.vector_stores import MetadataFilters, ExactMatchFilter
 # Gemini LLM (kept — only used for text generation, not embedding)
 from llama_index.llms.gemini import Gemini
 
-# ✅ FREE local embeddings — replaces GeminiEmbedding
+# FREE local embeddings — replaces GeminiEmbedding
 from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 
 # Cloud Database Integrations
@@ -30,14 +33,37 @@ if not GOOGLE_API_KEY or not PINECONE_API_KEY:
 # 2. Global Settings
 llm = Gemini(model="models/gemini-2.5-flash", api_key=GOOGLE_API_KEY, temperature=0.2)
 
-
 embed_model = HuggingFaceEmbedding(model_name="BAAI/bge-small-en-v1.5")
 
 Settings.llm = llm
 Settings.embed_model = embed_model
 
+# 3. PyTorch Similarity Scorer
+# Loads the same BAAI model to score student submissions against retrieved chunks
+scorer_model = SentenceTransformer("BAAI/bge-small-en-v1.5")
 
-# 3. Initialize Cloud Database Connection
+def score_submission_vs_context(student_work: str, context_chunks: list[str]) -> dict:
+    """
+    Uses PyTorch tensors to compute cosine similarity between the student
+    submission and each retrieved context chunk.
+    Returns best score, average score, and per-chunk scores.
+    """
+    student_emb = torch.tensor(scorer_model.encode(student_work))
+    chunk_embs = torch.tensor(scorer_model.encode(context_chunks))
+
+    scores = F.cosine_similarity(
+        student_emb.unsqueeze(0),  # (1, dim)
+        chunk_embs                  # (n, dim)
+    )
+
+    return {
+        "best_score": round(scores.max().item(), 3),
+        "avg_score": round(scores.mean().item(), 3),
+        "chunk_scores": [round(s, 3) for s in scores.tolist()]
+    }
+
+
+# 4. Initialize Cloud Database Connection
 try:
     pc = Pinecone(api_key=PINECONE_API_KEY)
     pinecone_index = pc.Index("hc-tutor")
@@ -48,7 +74,7 @@ except Exception as e:
     vector_store = None
 
 
-# 4. The "Cloud" Index Loader
+# 5. The "Cloud" Index Loader
 def get_index():
     if vector_store is None:
         raise Exception("Vector store connection failed.")
@@ -57,7 +83,6 @@ def get_index():
     total_vectors = stats.get('total_vector_count', 0)
 
     if total_vectors > 0:
-        # ✅ Any vectors found = already uploaded, just connect
         print(f"☁️ Connected to Pinecone. Found {total_vectors} existing vectors.")
         return VectorStoreIndex.from_vector_store(vector_store=vector_store)
 
@@ -89,7 +114,7 @@ except Exception as e:
     print(f"Startup Error: {e}")
     index = None
 
-# 5. Load Prompt
+# 6. Load Prompt
 def load_gem_prompt():
     try:
         with open("gem_prompt.txt", "r", encoding="utf-8") as f:
@@ -99,7 +124,7 @@ def load_gem_prompt():
 
 GEM_STYLE_TEMPLATE = load_gem_prompt()
 
-# 6. FastAPI App
+# 7. FastAPI App
 app = FastAPI()
 
 app.add_middleware(
@@ -126,6 +151,9 @@ async def health():
 async def grade_assignment(request: GradingRequest):
     try:
         target_filename = request.hc_filename.strip()
+        # Normalize: ensure # prefix and .pdf suffix match actual file names
+        if not target_filename.startswith("#"):
+            target_filename = "#" + target_filename
         if not target_filename.lower().endswith(".pdf"):
             target_filename += ".pdf"
 
@@ -137,23 +165,39 @@ async def grade_assignment(request: GradingRequest):
             filters=[ExactMatchFilter(key="file_name", value=target_filename)]
         )
 
-        query_engine = index.as_query_engine(
+        retriever = index.as_retriever(
             filters=filters,
             similarity_top_k=5,
-            response_mode="no_text"
         )
 
         # Retrieve
-        retrieval_response = query_engine.retrieve(request.student_work)
+        retrieval_response = retriever.retrieve(request.student_work)
 
         if not retrieval_response:
             return {"feedback": f"⚠️ Error: No content found for '{target_filename}'. Check filename spelling."}
 
-        context_text = "\n\n".join([node.node.get_content() for node in retrieval_response])
+        context_chunks = [node.node.get_content() for node in retrieval_response]
+        context_text = "\n\n".join(context_chunks)
+
+        # PyTorch similarity scoring
+        similarity = score_submission_vs_context(request.student_work, context_chunks)
+
+        # Derive HC tag from filename (e.g. "#evidencebased.pdf" -> "#evidencebased")
+        hc_tag = target_filename.replace(".pdf", "")
 
         # Generate
         final_prompt = f"""
         {GEM_STYLE_TEMPLATE}
+
+        Do NOT output a welcome message. Go directly to the feedback.
+
+        ### HC TAG → {hc_tag}
+
+        ### SEMANTIC ALIGNMENT SCORE
+        The student's submission scores {similarity['best_score']} / 1.0 similarity
+        to the most relevant reference chunk (average across chunks: {similarity['avg_score']}).
+        Use this to calibrate feedback depth — low scores suggest the student
+        missed core concepts entirely; high scores suggest refinement feedback.
 
         ### REFERENCE RULES (From {target_filename})
         {context_text}
@@ -162,14 +206,15 @@ async def grade_assignment(request: GradingRequest):
         {request.student_work}
 
         ### TASK
-        Critique the student submission based ONLY on the reference rules above.
+        Evaluate the student submission for the HC tag above using ONLY the reference rules provided.
         """
 
         response = await llm.acomplete(final_prompt)
 
         return {
             "feedback": response.text,
-            "used_file": target_filename
+            "used_file": target_filename,
+            "similarity_scores": similarity
         }
 
     except Exception as e:
